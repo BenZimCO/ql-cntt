@@ -9,8 +9,8 @@ export default function YearBarChart() {
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-base font-semibold">Số lượng thiết bị theo năm mua</CardTitle></CardHeader>
       <CardContent>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full h-72">
+          <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
             <BarChart data={mockChartByYear} barSize={36}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="year" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />

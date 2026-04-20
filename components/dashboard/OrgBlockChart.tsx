@@ -18,8 +18,8 @@ export default function OrgBlockChart({ orgName }: { orgName: string }) {
         <CardDescription className="text-xs">So sánh giữa các khối trong đơn vị</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full h-64">
+          <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
             <BarChart data={data} layout="vertical" barSize={24}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
               <XAxis type="number" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} allowDecimals={false} />

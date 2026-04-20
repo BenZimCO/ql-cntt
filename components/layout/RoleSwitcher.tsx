@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Shield, User, LogIn } from 'lucide-react';
@@ -34,6 +34,7 @@ export default function RoleSwitcher({ onClose }: { onClose: () => void }) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-lg">Chọn vai trò để xem giao diện</DialogTitle>
+          <DialogDescription className="text-center">Chọn quyền truy cập cho giao diện hiện tại hoặc xem dữ liệu đơn vị.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <button onClick={() => setSelectedType('admin')} className={cn('w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left', selectedType === 'admin' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30')}>

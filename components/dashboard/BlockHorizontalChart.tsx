@@ -12,8 +12,8 @@ export default function BlockHorizontalChart() {
         <CardDescription className="text-xs">Tổng hợp theo khối trên tất cả đơn vị</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full h-64">
+          <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
             <BarChart data={mockChartByBlock} layout="vertical" barSize={24}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
               <XAxis type="number" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />

@@ -15,8 +15,8 @@ export default function OrgBarChart() {
         <CardDescription className="text-xs">So sánh số lượng giữa các xã/phường/sở/ngành</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full h-64">
+          <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
             <BarChart data={data} barSize={28}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={50} />

@@ -1,74 +1,189 @@
-'use client';
+﻿'use client';
 import React, { useState } from 'react';
-import { Search, Filter, Plus } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Pencil, Trash2, ChevronRight } from 'lucide-react';
 import { useRole } from '@/lib/roleContext';
 import { mockOrganizations } from '@/lib/mockData';
-import RoleBanner from '@/components/dashboard/RoleBanner';
-import OrgList from '@/components/organizations/OrgList';
-import OrgDetail from '@/components/organizations/OrgDetail';
 import OrgDialog from '@/components/organizations/OrgDialog';
-import { cn } from '@/lib/utils';
+import OrgDetailView from '@/components/organizations/OrgDetailView';
 
-const FILTERS = ['Tất cả', 'Xã/Phường', 'Sở/Ngành', 'Đặc khu'];
+const blockColors: Record<string, string> = {
+  'Đảng ủy': 'bg-red-100 text-red-700',
+  'HĐND': 'bg-orange-100 text-orange-700',
+  'UBND': 'bg-blue-100 text-blue-700',
+  'MTTQVN': 'bg-green-100 text-green-700',
+};
 
-export default function OrganizationsPage() {
+type Dept = { id: number; name: string };
+type Block = { id: number; name: string; departments: Dept[] };
+type Org = { id: number; name: string; type: string; province: string; blocks: Block[] };
+type OrgFromDetail = { id: number; name: string; province: string; blocks: Block[] };
+type OrgDialogData = { id?: number; name: string; province: string; blocks: unknown[] };
+type OrgDialogState = { open: boolean; org: Org | null };
+type SelectedOrgState = { org: Org; blockName?: string } | null;
+
+export default function Organizations() {
   const { role, isAdmin } = useRole();
-  const [orgs, setOrgs] = useState(mockOrganizations);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [orgs, setOrgs] = useState<Org[]>(mockOrganizations);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('Tất cả');
-  const [orgDialog, setOrgDialog] = useState<{ open: boolean; org: any }>({ open: false, org: null });
+  const [orgDialog, setOrgDialog] = useState<OrgDialogState>({ open: false, org: null });
+  const [selectedOrg, setSelectedOrg] = useState<SelectedOrgState>(null);
 
-  let visible = isAdmin ? orgs : orgs.filter(o => o.id === role.orgId);
-  if (search) visible = visible.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
-  if (typeFilter !== 'Tất cả') visible = visible.filter(o => o.type === typeFilter);
+  let visibleOrgs = isAdmin ? orgs : orgs.filter(o => o.id === role.orgId);
+  if (search) {
+    const s = search.toLowerCase();
+    visibleOrgs = visibleOrgs.filter(o => {
+      const blocks = isAdmin ? o.blocks : o.blocks.filter(b => b.name === role.blockName);
+      return o.name.toLowerCase().includes(s) ||
+        blocks.some(b => b.name.toLowerCase().includes(s));
+    });
+  }
 
-  const selectedOrg = orgs.find(o => o.id === selectedId) || null;
+  const handleSaveOrg = (orgData: OrgDialogData) => {
+    if (orgData.id) {
+      setOrgs(prev => prev.map(o => o.id === orgData.id ? { ...o, name: orgData.name, blocks: orgData.blocks as Block[] } : o));
+    } else {
+      const existingOrg = orgs.find(o => o.name.toLowerCase() === orgData.name.toLowerCase());
+      const newBlock = (orgData.blocks as Block[])[0];
 
-  const handleSaveOrg = (data: any) => {
-    if (data.id) setOrgs(prev => prev.map(o => o.id === data.id ? { ...o, name: data.name, type: data.type } : o));
-    else { const newId = Math.max(0, ...orgs.map(o => o.id)) + 1; setOrgs(prev => [...prev, { ...data, id: newId }]); }
+      if (existingOrg) {
+        if (existingOrg.blocks.some(b => b.name === newBlock.name)) {
+          window.alert('Đơn vị đã tồn tại khối này, không thể tạo trùng.');
+          return;
+        }
+        if (existingOrg.blocks.length >= 4) {
+          window.alert('Đơn vị này đã có đủ 4 khối, không thể tạo thêm.');
+          return;
+        }
+
+        setOrgs(prev => prev.map(o => o.id === existingOrg.id ? { ...o, blocks: [...o.blocks, newBlock] } : o));
+      } else {
+        const newId = Math.max(0, ...orgs.map(o => o.id)) + 1;
+        setOrgs(prev => [...prev, { ...(orgData as Org), id: newId, blocks: orgData.blocks as Block[] }]);
+      }
+    }
     setOrgDialog({ open: false, org: null });
   };
 
-  const handleDeleteOrg = (id: number) => {
-    setOrgs(prev => prev.filter(o => o.id !== id));
-    if (selectedId === id) setSelectedId(null);
+  const handleDeleteOrg = (orgId: number) => {
+    setOrgs(prev => prev.filter(o => o.id !== orgId));
   };
 
+  const handleUpdateOrg = (updatedOrg: OrgFromDetail) => {
+    setOrgs(prev => prev.map(o => o.id === updatedOrg.id ? { ...o, ...updatedOrg } : o));
+    setSelectedOrg(prev => prev ? { org: { ...prev.org, ...updatedOrg }, blockName: prev.blockName } : null);
+  };
+
+  const rows = visibleOrgs.flatMap(org =>
+    (isAdmin ? org.blocks : org.blocks.filter(b => b.name === role.blockName)).map(block => ({
+      org,
+      block,
+      deptCount: block.departments.length,
+    }))
+  );
+
+  if (selectedOrg) {
+    return (
+      <OrgDetailView
+        org={selectedOrg.org}
+        onBack={() => setSelectedOrg(null)}
+        onUpdateOrg={handleUpdateOrg}
+        isAdmin={isAdmin}
+        currentBlockName={selectedOrg.blockName ?? role.blockName ?? undefined}
+      />
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Quản lý Cơ quan / Đơn vị</h1>
-      <RoleBanner />
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="relative max-w-xs w-full">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Quản lý Cơ quan</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Danh sách các cơ quan, đơn vị</p>
+        </div>
+        {isAdmin && (
+          <Button className="gap-2 bg-slate-900 hover:bg-slate-800 text-white" onClick={() => setOrgDialog({ open: true, org: null })}>
+            <Plus className="w-4 h-4" />
+            Thêm cơ quan
+          </Button>
+        )}
+      </div>
+
+      <div className="bg-card rounded-xl border">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="font-semibold text-sm">Danh sách cơ quan</h2>
+          <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Tìm kiếm đơn vị..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input
+              placeholder="Tìm kiếm tên cơ quan, khối..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 h-8 text-sm"
+            />
           </div>
-          <div className="flex items-center gap-1">
-            <Filter className="w-4 h-4 text-muted-foreground mr-1" />
-            {FILTERS.map(f => (
-              <button key={f} onClick={() => setTypeFilter(f)} className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all', typeFilter === f ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted')}>{f}</button>
-            ))}
-          </div>
         </div>
-        {isAdmin && <Button size="sm" className="gap-2" onClick={() => setOrgDialog({ open: true, org: null })}><Plus className="w-4 h-4" />Thêm đơn vị</Button>}
+
+        <div className="grid grid-cols-[120px_1fr_140px_160px_100px] px-6 py-3 border-b bg-muted/30 text-xs font-medium text-muted-foreground">
+          <span>Tỉnh</span>
+          <span>Tên cơ quan</span>
+          <span>Khối</span>
+          <span>Số phòng ban</span>
+          <span className="text-right">Thao tác</span>
+        </div>
+
+        <div className="divide-y">
+          {rows.map(({ org, block, deptCount }) => (
+            <div key={`${org.id}-${block.id}`} className="grid grid-cols-[120px_1fr_140px_160px_100px] px-6 py-4 items-center hover:bg-muted/20 transition-colors">
+              <span className="text-sm text-primary font-medium">{org.province}</span>
+              <button
+                onClick={() => setSelectedOrg({ org, blockName: block.name })}
+                className="flex items-center gap-1 text-sm font-semibold text-left hover:text-primary transition-colors"
+              >
+                {org.name}
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+              <div>
+                <Badge className={`text-xs font-medium ${blockColors[block.name] || 'bg-slate-100 text-slate-700'}`}>
+                  {block.name}
+                </Badge>
+              </div>
+              <span className="text-sm text-muted-foreground">{deptCount} phòng</span>
+              {isAdmin ? (
+                <div className="flex items-center gap-2 justify-end">
+                  <button
+                    onClick={() => setOrgDialog({ open: true, org })}
+                    className="p-1.5 rounded-md hover:bg-muted transition"
+                  >
+                    <Pencil className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteOrg(org.id)}
+                    className="p-1.5 rounded-md hover:bg-red-50 transition"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </button>
+                </div>
+              ) : <div />}
+            </div>
+          ))}
+          {rows.length === 0 && (
+            <div className="px-6 py-12 text-center text-sm text-muted-foreground">
+              Không tìm thấy cơ quan nào
+            </div>
+          )}
+        </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-[600px] items-start">
-        <div className="lg:col-span-2">
-          <ScrollArea className="h-[600px] pr-2">
-            <OrgList orgs={visible} selectedId={selectedId} onSelect={setSelectedId} isAdmin={isAdmin} onEdit={org => setOrgDialog({ open: true, org })} onDelete={handleDeleteOrg} />
-          </ScrollArea>
-        </div>
-        <div className="lg:col-span-3 bg-card rounded-xl border p-6 h-full">
-          <OrgDetail org={selectedOrg} onUpdateOrg={updated => setOrgs(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o))} />
-        </div>
-      </div>
-      {orgDialog.open && <OrgDialog org={orgDialog.org} onSave={handleSaveOrg} onClose={() => setOrgDialog({ open: false, org: null })} />}
+
+      {orgDialog.open && (
+        <OrgDialog
+          org={orgDialog.org}
+          onSave={handleSaveOrg}
+          onClose={() => setOrgDialog({ open: false, org: null })}
+        />
+      )}
     </div>
   );
 }

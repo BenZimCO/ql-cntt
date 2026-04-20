@@ -2,6 +2,10 @@
 import React, { useState } from 'react';
 import { Building2, Layers, GitBranch, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRole } from '@/lib/roleContext';
 import DepartmentDialog from './DepartmentDialog';
 
@@ -20,6 +24,8 @@ type Org = { id: number; name: string; province: string; blocks: Block[] };
 export default function OrgDetail({ org, onUpdateOrg }: { org: Org | null; onUpdateOrg: (org: Org) => void }) {
   const { isAdmin, role } = useRole();
   const [deptDialog, setDeptDialog] = useState<{ open: boolean; blockId: number | null; dept: Dept | null }>({ open: false, blockId: null, dept: null });
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [selectedBlockName, setSelectedBlockName] = useState('Đảng ủy');
 
   if (!org) return (
     <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
@@ -28,6 +34,8 @@ export default function OrgDetail({ org, onUpdateOrg }: { org: Org | null; onUpd
     </div>
   );
 
+  const BLOCK_OPTIONS = ['Đảng ủy', 'HĐND', 'UBND', 'MTTQVN'];
+  const availableBlocks = BLOCK_OPTIONS.filter(name => !org.blocks.some(b => b.name === name));
   const totalDepts = org.blocks.reduce((s, b) => s + b.departments.length, 0);
 
   const handleDeleteDept = (blockId: number, deptId: number) => {
@@ -45,18 +53,42 @@ export default function OrgDetail({ org, onUpdateOrg }: { org: Org | null; onUpd
     setDeptDialog({ open: false, blockId: null, dept: null });
   };
 
+  const handleAddBlock = () => {
+    if (!selectedBlockName) return;
+    onUpdateOrg({
+      ...org,
+      blocks: [...org.blocks, { id: Math.max(0, ...org.blocks.map(b => b.id)) + 1, name: selectedBlockName, departments: [] }]
+    });
+    setBlockDialogOpen(false);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center"><Building2 className="w-7 h-7 text-slate-500" /></div>
-        <div>
-          <h2 className="text-xl font-bold">{org.name}</h2>
-          <p className="text-sm text-muted-foreground">Tỉnh {org.province}</p>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5" />{org.blocks.length} Khối</span>
-            <span className="flex items-center gap-1"><GitBranch className="w-3.5 h-3.5" />{totalDepts} Phòng ban</span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center"><Building2 className="w-7 h-7 text-slate-500" /></div>
+          <div>
+            <h2 className="text-xl font-bold">{org.name}</h2>
+            <p className="text-sm text-muted-foreground">Tỉnh {org.province}</p>
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5" />{org.blocks.length} Khối</span>
+              <span className="flex items-center gap-1"><GitBranch className="w-3.5 h-3.5" />{totalDepts} Phòng ban</span>
+            </div>
           </div>
         </div>
+        {isAdmin && (
+          <Button
+            size="sm"
+            className="gap-2"
+            onClick={() => {
+              setSelectedBlockName(availableBlocks[0] || 'Đảng ủy');
+              setBlockDialogOpen(true);
+            }}
+            disabled={availableBlocks.length === 0}
+          >
+            <Plus className="w-4 h-4" />Thêm khối
+          </Button>
+        )}
       </div>
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Cấu trúc tổ chức</h3>
@@ -93,7 +125,38 @@ export default function OrgDetail({ org, onUpdateOrg }: { org: Org | null; onUpd
         </div>
       </div>
       {deptDialog.open && deptDialog.blockId && (
-        <DepartmentDialog blockId={deptDialog.blockId} blocks={org.blocks} dept={deptDialog.dept} onSave={handleSaveDept} onClose={() => setDeptDialog({ open: false, blockId: null, dept: null })} />
+        <DepartmentDialog
+          blockId={deptDialog.blockId}
+          dept={deptDialog.dept}
+          onSave={handleSaveDept}
+          onClose={() => setDeptDialog({ open: false, blockId: null, dept: null })}
+        />
+      )}
+
+      {isAdmin && (
+        <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+            <DialogTitle>Thêm khối mới</DialogTitle>
+            <DialogDescription>Chọn loại khối để thêm vào cấu trúc tổ chức hiện tại.</DialogDescription>
+          </DialogHeader>
+            <form onSubmit={e => { e.preventDefault(); handleAddBlock(); }} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Loại khối</Label>
+                <Select value={selectedBlockName} onValueChange={setSelectedBlockName}>
+                  <SelectTrigger><SelectValue placeholder="Chọn khối" /></SelectTrigger>
+                  <SelectContent>
+                    {availableBlocks.map(block => <SelectItem key={block} value={block}>{block}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setBlockDialogOpen(false)}>Hủy</Button>
+                <Button type="submit" disabled={!selectedBlockName}>Thêm</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -42,8 +42,7 @@ export default function DeviceDetailModal({ device, onClose }: { device?: any; o
                 <p className="text-lg font-semibold text-slate-900">{device.brand} {device.model}</p>
                 <p className="text-sm text-muted-foreground">Mã thiết bị: {device.code}</p>
               </div>
-            </DialogTitle>
-          </DialogHeader>
+            </DialogTitle>            <DialogDescription>Thông tin chi tiết về thiết bị, người sử dụng và trạng thái.</DialogDescription>          </DialogHeader>
 
           <ScrollArea className="flex-1 min-h-0 overflow-hidden">
             <div className="space-y-4 p-6">

@@ -11,8 +11,8 @@ export default function GroupPieChart() {
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-base font-semibold">Phân bổ theo nhóm thiết bị</CardTitle></CardHeader>
       <CardContent>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full h-72">
+          <ResponsiveContainer width="100%" height="100%" minHeight={0} minWidth={0}>
             <PieChart>
               <Pie data={mockChartByGroup} cx="50%" cy="45%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value" isAnimationActive animationDuration={900} animationBegin={100}>
                 {mockChartByGroup.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
