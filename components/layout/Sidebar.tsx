@@ -23,7 +23,7 @@ export default function Sidebar({ collapsed, setCollapsed }: { collapsed: boolea
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <p className="font-bold text-sm text-white truncate">Quản lý TTBHTCNTT</p>
+            <p className="font-bold text-sm text-white truncate">Quản lý CNTT</p>
             <p className="text-xs text-slate-400 truncate">Tỉnh Khánh Hòa</p>
           </div>
         )}
