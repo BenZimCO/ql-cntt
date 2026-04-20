@@ -1,10 +1,10 @@
 ﻿'use client';
 import React, { useState } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useRole } from '@/lib/roleContext';
 import { mockOrganizations } from '@/lib/mockData';
 import OrgDialog from '@/components/organizations/OrgDialog';
@@ -29,8 +29,10 @@ export default function Organizations() {
   const { role, isAdmin } = useRole();
   const [orgs, setOrgs] = useState<Org[]>(mockOrganizations);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [orgDialog, setOrgDialog] = useState<OrgDialogState>({ open: false, org: null });
   const [selectedOrg, setSelectedOrg] = useState<SelectedOrgState>(null);
+  const PAGE_SIZE = 10;
 
   let visibleOrgs = isAdmin ? orgs : orgs.filter(o => o.id === role.orgId);
   if (search) {
@@ -85,6 +87,10 @@ export default function Organizations() {
     }))
   );
 
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   if (selectedOrg) {
     return (
       <OrgDetailView
@@ -120,7 +126,7 @@ export default function Organizations() {
             <Input
               placeholder="Tìm kiếm tên cơ quan, khối..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
               className="pl-9 h-8 text-sm"
             />
           </div>
@@ -135,7 +141,7 @@ export default function Organizations() {
         </div>
 
         <div className="divide-y">
-          {rows.map(({ org, block, deptCount }) => (
+          {paginatedRows.map(({ org, block, deptCount }) => (
             <div key={`${org.id}-${block.id}`} className="grid grid-cols-[120px_1fr_140px_160px_100px] px-6 py-4 items-center hover:bg-muted/20 transition-colors">
               <span className="text-sm text-primary font-medium">{org.province}</span>
               <button
@@ -174,6 +180,15 @@ export default function Organizations() {
               Không tìm thấy cơ quan nào
             </div>
           )}
+        </div>
+
+        <div className="px-6 py-3 border-t flex items-center justify-between text-sm text-muted-foreground">
+          <span>Hiển thị {paginatedRows.length > 0 ? (currentPage-1)*PAGE_SIZE+1 : 0}–{Math.min(currentPage*PAGE_SIZE, rows.length)} / {rows.length} cơ quan</span>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage===1} onClick={() => setPage(p => p-1)}><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="text-xs px-2">{currentPage} / {totalPages}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage===totalPages} onClick={() => setPage(p => p+1)}><ChevronRight className="w-4 h-4" /></Button>
+          </div>
         </div>
       </div>
 
